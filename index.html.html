@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>மொய் & செலவு கணக்கு</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root{--primary:#7C3AED;--primary-light:#EDE9FE;--secondary:#F59E0B;--secondary-light:#FEF3C7;--success:#10B981;--danger:#EF4444;--bg:#F8F7FF;--card:#FFFFFF;--text:#1E1B4B;--text-muted:#6B7280;--border:#E5E7EB;--shadow:0 4px 24px rgba(124,58,237,0.08);--radius:16px;--font-tamil:'Noto Sans Tamil',sans-serif;--font-main:'Inter',sans-serif}
+[data-theme="dark"]{--bg:#0F0E1A;--card:#1A1830;--text:#F3F0FF;--text-muted:#9CA3AF;--border:#2D2B45;--shadow:0 4px 24px rgba(0,0,0,0.3);--primary-light:#2D1F5E;--secondary-light:#3B2A00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s,color .3s}
+#loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#7C3AED 0%,#4F46E5 50%,#0EA5E9 100%)}
+.login-card{background:white;border-radius:24px;padding:48px 40px;text-align:center;max-width:380px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.login-logo{font-size:56px;margin-bottom:16px}
+.login-title{font-family:var(--font-tamil);font-size:24px;font-weight:700;color:#1E1B4B;margin-bottom:8px}
+.login-sub{color:#6B7280;font-size:14px;margin-bottom:32px}
+.google-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:14px 24px;background:white;border:2px solid #E5E7EB;border-radius:12px;font-size:15px;font-weight:600;color:#374151;cursor:pointer;transition:all .2s}
+.google-btn:hover{border-color:#7C3AED;background:#F8F7FF;transform:translateY(-1px)}
+.google-icon{width:20px;height:20px}
+#appShell{display:none}
+.top-bar{position:sticky;top:0;z-index:100;background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow)}
+.top-bar-left{display:flex;align-items:center;gap:10px}
+.app-logo{font-size:24px}
+.app-title{font-family:var(--font-tamil);font-size:16px;font-weight:700;color:var(--primary)}
+.top-bar-right{display:flex;align-items:center;gap:8px}
+.icon-btn{width:36px;height:36px;border-radius:50%;border:none;background:var(--primary-light);color:var(--primary);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.icon-btn:hover{background:var(--primary);color:white}
+.user-avatar{width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--primary);cursor:pointer}
+.tab-nav{display:flex;background:var(--card);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+.tab-nav::-webkit-scrollbar{display:none}
+.tab-btn{flex:1;min-width:80px;padding:12px 8px;border:none;background:none;color:var(--text-muted);font-size:11px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;border-bottom:3px solid transparent;transition:all .2s;font-family:var(--font-tamil)}
+.tab-btn.active{color:var(--primary);border-bottom-color:var(--primary)}
+.tab-btn .tab-icon{font-size:20px}
+.main-content{padding:16px;max-width:768px;margin:0 auto}
+.card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:16px;box-shadow:var(--shadow);border:1px solid var(--border)}
+.card-title{font-family:var(--font-tamil);font-size:16px;font-weight:700;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:16px}
+.stat-card{background:var(--card);border-radius:var(--radius);padding:16px;border:1px solid var(--border);box-shadow:var(--shadow)}
+.stat-label{font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;font-family:var(--font-tamil)}
+.stat-value{font-size:22px;font-weight:700;color:var(--primary);margin-top:4px}
+.stat-sub{font-size:11px;color:var(--text-muted);margin-top:2px}
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:6px;font-family:var(--font-tamil)}
+.form-input,.form-select,.form-textarea{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text);font-size:14px;font-family:var(--font-tamil);transition:border-color .2s;outline:none}
+.form-input:focus,.form-select:focus{border-color:var(--primary)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.voice-box{border:2px dashed var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;text-align:center;background:var(--primary-light)}
+.voice-btn{width:56px;height:56px;border-radius:50%;border:none;background:var(--primary);color:white;font-size:24px;cursor:pointer;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;transition:all .2s;box-shadow:0 4px 12px rgba(124,58,237,.4)}
+.voice-btn.recording{background:var(--danger);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+.voice-text{font-size:13px;color:var(--text-muted);font-family:var(--font-tamil)}
+.voice-result{margin-top:8px;padding:8px 12px;background:var(--card);border-radius:8px;font-size:13px;color:var(--text);font-family:var(--font-tamil);text-align:left;display:none}
+.btn{padding:10px 20px;border-radius:10px;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;font-family:var(--font-tamil);display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--primary);color:white}
+.btn-primary:hover{background:#6D28D9;transform:translateY(-1px)}
+.btn-secondary{background:var(--secondary);color:white}
+.btn-success{background:var(--success);color:white}
+.btn-danger{background:var(--danger);color:white}
+.btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--text)}
+.btn-outline:hover{border-color:var(--primary);color:var(--primary)}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-full{width:100%;justify-content:center}
+.btn-group{display:flex;gap:8px;flex-wrap:wrap}
+.list-item{display:flex;align-items:flex-start;gap:12px;padding:12px;border-radius:12px;border:1px solid var(--border);margin-bottom:8px;background:var(--card);transition:all .2s}
+.list-item:hover{border-color:var(--primary);box-shadow:var(--shadow)}
+.item-avatar{width:40px;height:40px;border-radius:50%;background:var(--primary-light);color:var(--primary);font-size:16px;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-family:var(--font-tamil)}
+.item-body{flex:1;min-width:0}
+.item-name{font-size:14px;font-weight:600;color:var(--text);font-family:var(--font-tamil)}
+.item-sub{font-size:12px;color:var(--text-muted);margin-top:2px;font-family:var(--font-tamil)}
+.item-amount{font-size:16px;font-weight:700;color:var(--success);white-space:nowrap}
+.function-card{background:linear-gradient(135deg,var(--primary) 0%,#4F46E5 100%);border-radius:var(--radius);padding:20px;color:white;margin-bottom:12px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.function-card::before{content:'';position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.1)}
+.function-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(124,58,237,.3)}
+.function-card .fn-type{font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:1px}
+.function-card .fn-name{font-size:20px;font-weight:700;margin:4px 0;font-family:var(--font-tamil)}
+.function-card .fn-meta{font-size:12px;opacity:.8;font-family:var(--font-tamil)}
+.function-card .fn-amount{font-size:24px;font-weight:700;margin-top:12px}
+.function-card .fn-count{font-size:12px;opacity:.8}
+#liveModeScreen{display:none;position:fixed;inset:0;background:#0F0E1A;z-index:1000;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:white}
+.live-badge{display:inline-flex;align-items:center;gap:8px;background:var(--danger);color:white;padding:6px 16px;border-radius:20px;font-size:13px;font-weight:700;margin-bottom:24px}
+.live-dot{width:8px;height:8px;border-radius:50%;background:white;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.live-amount{font-size:72px;font-weight:900;color:#10B981;letter-spacing:-2px}
+.live-label{font-size:18px;opacity:.7;margin-bottom:32px;font-family:var(--font-tamil)}
+.live-count{font-size:48px;font-weight:700;color:var(--secondary)}
+.live-count-label{font-size:14px;opacity:.7;margin-bottom:40px;font-family:var(--font-tamil)}
+.live-fn-name{font-size:20px;font-weight:600;opacity:.8;margin-bottom:8px;font-family:var(--font-tamil)}
+.category-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.chip{padding:6px 12px;border-radius:20px;border:1.5px solid var(--border);font-size:12px;cursor:pointer;transition:all .2s;font-family:var(--font-tamil);background:var(--bg);color:var(--text-muted)}
+.chip.active{background:var(--primary);border-color:var(--primary);color:white}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border-radius:24px 24px 0 0;padding:24px 20px;width:100%;max-width:768px;max-height:90vh;overflow-y:auto;animation:slideUp .3s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
+.modal-title{font-family:var(--font-tamil);font-size:18px;font-weight:700;margin-bottom:20px}
+.search-bar{display:flex;align-items:center;gap:8px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:8px 12px;margin-bottom:16px}
+.search-bar input{flex:1;border:none;background:none;outline:none;font-size:14px;color:var(--text);font-family:var(--font-tamil)}
+.search-bar .search-icon{color:var(--text-muted);font-size:16px}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;font-family:var(--font-tamil)}
+.badge-purple{background:var(--primary-light);color:var(--primary)}
+.badge-green{background:#D1FAE5;color:#065F46}
+.badge-yellow{background:var(--secondary-light);color:#92400E}
+.badge-red{background:#FEE2E2;color:#991B1B}
+.heatmap-item{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.heatmap-bar{flex:1;height:24px;border-radius:6px;background:var(--border);overflow:hidden}
+.heatmap-fill{height:100%;border-radius:6px;display:flex;align-items:center;padding-left:8px;font-size:11px;color:white;font-weight:600;transition:width .5s ease}
+.heatmap-label{font-size:12px;font-family:var(--font-tamil);min-width:80px;color:var(--text)}
+.heatmap-val{font-size:12px;font-weight:700;color:var(--text);min-width:60px;text-align:right}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.section-title{font-family:var(--font-tamil);font-size:15px;font-weight:700;color:var(--text)}
+.relation-tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:12px;font-size:11px;background:var(--secondary-light);color:#92400E;font-family:var(--font-tamil)}
+.export-menu{display:flex;gap:8px;flex-wrap:wrap}
+.ocr-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:24px;text-align:center;cursor:pointer;transition:all .2s}
+.ocr-zone:hover{border-color:var(--primary);background:var(--primary-light)}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text-muted)}
+.empty-state .empty-icon{font-size:48px;margin-bottom:12px}
+.empty-state p{font-family:var(--font-tamil);font-size:14px}
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1E1B4B;color:white;padding:12px 20px;border-radius:12px;font-size:13px;font-family:var(--font-tamil);z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1}
+.bottom-spacer{height:72px}
+@media(min-width:640px){.stats-grid{grid-template-columns:repeat(4,1fr)}.form-row{grid-template-columns:1fr 1fr 1fr}}
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">💰</div>
+    <div class="login-title">மொய் & செலவு கணக்கு</div>
+    <div class="login-sub">உங்கள் குடும்ப கணக்கை சுலபமாக நிர்வகிக்கவும்</div>
+    <button class="google-btn" onclick="signInWithGoogle()">
+      <svg class="google-icon" viewBox="0 0 24 24">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+      </svg>
+      Google மூலம் உள்நுழைக
+    </button>
+  </div>
+</div>
+
+<div id="appShell">
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <span class="app-logo">💰</span>
+      <span class="app-title">மொய் & செலவு</span>
+    </div>
+    <div class="top-bar-right">
+      <button class="icon-btn" onclick="toggleTheme()">🌙</button>
+      <img id="userAvatar" class="user-avatar" src="" alt="U" onclick="showUserMenu()" style="display:none">
+    </div>
+  </div>
+
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab('dashboard')"><span class="tab-icon">🏠</span>Dashboard</button>
+    <button class="tab-btn" onclick="switchTab('moi')"><span class="tab-icon">💍</span>மொய்</button>
+    <button class="tab-btn" onclick="switchTab('expense')"><span class="tab-icon">💰</span>செலவு</button>
+    <button class="tab-btn" onclick="switchTab('analytics')"><span class="tab-icon">📊</span>அனலிட்டிக்ஸ்</button>
+    <button class="tab-btn" onclick="switchTab('export')"><span class="tab-icon">📤</span>Export</button>
+  </div>
+
+  <div class="main-content" id="mainContent"></div>
+  <div class="bottom-spacer"></div>
+</div>
+
+<div id="liveModeScreen">
+  <div class="live-badge"><span class="live-dot"></span> LIVE</div>
+  <div id="liveFnName" class="live-fn-name">Function</div>
+  <div class="live-amount" id="liveAmount">₹0</div>
+  <div class="live-label">மொத்த மொய் வசூல்</div>
+  <div class="live-count" id="liveCount">0</div>
+  <div class="live-count-label">பேர் மொய் குடுத்தாங்க</div>
+  <button class="btn btn-outline" style="color:white;border-color:rgba(255,255,255,.3);margin-top:16px" onclick="closeLiveMode()">✕ Close</button>
+</div>
+
+<!-- ADD FUNCTION MODAL -->
+<div class="modal-overlay" id="addFunctionModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">➕ புது Function</div>
+    <div class="form-group"><label class="form-label">Function பெயர் *</label><input class="form-input" id="fnName" placeholder="ராஜேஷ் திருமணம்"></div>
+    <div class="form-group"><label class="form-label">வகை *</label>
+      <select class="form-select" id="fnType">
+        <option value="திருமணம்">💒 திருமணம்</option>
+        <option value="பிறந்தநாள்">🎂 பிறந்தநாள்</option>
+        <option value="வளைகாப்பு">🔮 வளைகாப்பு</option>
+        <option value="தொட்டில்">🛏️ தொட்டில்</option>
+        <option value="கிரஹப்பிரவேசம்">🏠 கிரஹப்பிரவேசம்</option>
+        <option value="வேறு">📌 வேறு</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">தேதி *</label><input class="form-input" id="fnDate" type="date"></div>
+      <div class="form-group"><label class="form-label">இடம்</label><input class="form-input" id="fnPlace" placeholder="கோவில்பட்டி"></div>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-primary btn-full" onclick="saveFunction()">✅ Save</button>
+      <button class="btn btn-outline" onclick="closeModal('addFunctionModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD MOI MODAL -->
+<div class="modal-overlay" id="addMoiModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">💍 மொய் Entry</div>
+    <div class="voice-box">
+      <button class="voice-btn" id="moiVoiceBtn" onclick="startVoice('moi')">🎤</button>
+      <div class="voice-text">குரல் மூலம் சொல்லுங்க<br><small>"ராஜேஷ் கோவில்பட்டி 500 குடுத்தாங்க"</small></div>
+      <div class="voice-result" id="moiVoiceResult"></div>
+    </div>
+    <div class="form-group"><label class="form-label">பெயர் *</label><input class="form-input" id="moiName" placeholder="ராஜேஷ்"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">ஊர்</label><input class="form-input" id="moiVillage" placeholder="கோவில்பட்டி"></div>
+      <div class="form-group"><label class="form-label">உறவு முறை</label>
+        <select class="form-select" id="moiRelation">
+          <option value="உறவினர்">👨‍👩‍👧 உறவினர்</option>
+          <option value="நண்பர்">🤝 நண்பர்</option>
+          <option value="அண்டை வீட்டார்">🏘️ அண்டை வீட்டார்</option>
+          <option value="சக ஊழியர்">💼 சக ஊழியர்</option>
+          <option value="வேறு">📌 வேறு</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Identity குறிப்பு</label><input class="form-input" id="moiIdentity" placeholder='மணி (சுரேஷ் ஓட சித்தப்பா)'></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">வகை</label>
+        <select class="form-select" id="moiAmtType" onchange="toggleGold(this.value)">
+          <option value="cash">💵 Cash</option>
+          <option value="gold">🥇 Gold</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label" id="moiAmtLabel">தொகை (₹) *</label><input class="form-input" id="moiAmount" type="number" placeholder="500"></div>
+    </div>
+    <div class="form-group" id="goldUnitGroup" style="display:none"><label class="form-label">Gold (Sovereigns)</label><input class="form-input" id="moiGold" type="number" placeholder="2" step="0.5"></div>
+    <div class="form-group"><label class="form-label">தேதி</label><input class="form-input" id="moiDate" type="date"></div>
+    <div class="btn-group">
+      <button class="btn btn-primary btn-full" onclick="saveMoiEntry()">✅ Save</button>
+      <button class="btn btn-outline" onclick="closeModal('addMoiModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD EXPENSE MODAL -->
+<div class="modal-overlay" id="addExpenseModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">💰 செலவு Entry</div>
+    <div class="voice-box">
+      <button class="voice-btn" id="expVoiceBtn" onclick="startVoice('expense')">🎤</button>
+      <div class="voice-text">குரல் மூலம் சொல்லுங்க<br><small>"நேத்து பால் 50 ரூபாய் வாங்கினேன்"</small></div>
+      <div class="voice-result" id="expVoiceResult"></div>
+    </div>
+    <div class="form-group"><label class="form-label">விவரம் *</label><input class="form-input" id="expDesc" placeholder="பால், காய்கறி..."></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">தொகை (₹) *</label><input class="form-input" id="expAmount" type="number" placeholder="150"></div>
+      <div class="form-group"><label class="form-label">தேதி *</label><input class="form-input" id="expDate" type="date"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Category</label>
+      <div class="category-chips" id="categoryChips">
+        <div class="chip active" onclick="selectCategory(this,'உணவு')">🍛 உணவு</div>
+        <div class="chip" onclick="selectCategory(this,'காய்கறி')">🥦 காய்கறி</div>
+        <div class="chip" onclick="selectCategory(this,'பயணம்')">🚗 பயணம்</div>
+        <div class="chip" onclick="selectCategory(this,'மருத்துவம்')">💊 மருத்துவம்</div>
+        <div class="chip" onclick="selectCategory(this,'ஷாப்பிங்')">🛍️ ஷாப்பிங்</div>
+        <div class="chip" onclick="selectCategory(this,'மின்சாரம்')">💡 மின்சாரம்</div>
+        <div class="chip" onclick="selectCategory(this,'வேறு')">📌 வேறு</div>
+      </div>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-primary btn-full" onclick="saveExpense()">✅ Save</button>
+      <button class="btn btn-outline" onclick="closeModal('addExpenseModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- OCR MODAL -->
+<div class="modal-overlay" id="ocrModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📸 பழைய நோட்டு Scan</div>
+    <div class="ocr-zone" onclick="document.getElementById('ocrInput').click()">
+      <div style="font-size:48px;margin-bottom:8px">📷</div>
+      <div style="font-family:var(--font-tamil);color:var(--text-muted)">Photo எடுக்க / Upload பண்ண tap பண்ணுங்க</div>
+      <input type="file" id="ocrInput" accept="image/*" capture="environment" style="display:none" onchange="processOCR(this)">
+    </div>
+    <div id="ocrPreview" style="margin-top:12px;display:none">
+      <img id="ocrImage" style="width:100%;border-radius:12px;max-height:200px;object-fit:contain">
+      <div id="ocrLoader" style="display:none;text-align:center;padding:16px;font-family:var(--font-tamil);color:var(--text-muted)">🔍 Text extract பண்றோம்...</div>
+      <div id="ocrResults"></div>
+    </div>
+    <button class="btn btn-outline btn-full" style="margin-top:12px" onclick="closeModal('ocrModal')">Close</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+import{getAuth,GoogleAuthProvider,signInWithPopup,signOut,onAuthStateChanged}from"https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+import{getFirestore,collection,addDoc,getDocs,deleteDoc,doc,onSnapshot,query,where,orderBy,updateDoc}from"https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+const firebaseConfig={apiKey:"AIzaSyAnzF_nF-nYbBnSntJwK8g45Uz_4gJoxJ8",authDomain:"abimanyu-4c187.firebaseapp.com",projectId:"abimanyu-4c187",storageBucket:"abimanyu-4c187.firebasestorage.app",messagingSenderId:"542837786856",appId:"1:542837786856:web:b1b80ef63f600a8ab7615d"};
+
+const fbApp=initializeApp(firebaseConfig);
+const auth=getAuth(fbApp);
+const db=getFirestore(fbApp);
+const provider=new GoogleAuthProvider();
+
+let currentUser=null,currentTab='dashboard',currentFunctionId=null;
+let functions=[],moiEntries=[],expenses=[],selectedCategory='உணவு',darkMode=false,liveUnsub=null;
+
+window.signInWithGoogle=async()=>{try{await signInWithPopup(auth,provider)}catch(e){showToast('Login பிழை')}};
+window.showUserMenu=async()=>{if(confirm('Logout ஆகணுமா?')){await signOut(auth)}};
+window.toggleGold=(v)=>{document.getElementById('goldUnitGroup').style.display=v==='gold'?'block':'none';document.getElementById('moiAmtLabel').textContent=v==='gold'?'மதிப்பு (₹)':'தொகை (₹)'};
+
+onAuthStateChanged(auth,async user=>{
+  if(user){
+    currentUser=user;
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('appShell').style.display='block';
+    const av=document.getElementById('userAvatar');
+    if(user.photoURL){av.src=user.photoURL;av.style.display='block'}
+    await loadAll();
+    renderTab('dashboard');
+  }else{
+    document.getElementById('loginScreen').style.display='flex';
+    document.getElementById('appShell').style.display='none';
+  }
+});
+
+async function loadAll(){await Promise.all([loadFunctions(),loadExpenses()])}
+
+async function loadFunctions(){
+  try{
+    const q=query(collection(db,'functions'),where('uid','==',currentUser.uid),orderBy('createdAt','desc'));
+    const s=await getDocs(q);
+    functions=s.docs.map(d=>({id:d.id,...d.data()}));
+  }catch(e){showToast('Data load பிழை: Firestore rules check பண்ணுங்க')}
+}
+
+async function loadMoiEntries(fid){
+  const q=query(collection(db,'moiEntries'),where('functionId','==',fid),orderBy('createdAt','desc'));
+  const s=await getDocs(q);
+  moiEntries=s.docs.map(d=>({id:d.id,...d.data()}));
+}
+
+async function loadExpenses(){
+  try{
+    const q=query(collection(db,'expenses'),where('uid','==',currentUser.uid),orderBy('date','desc'));
+    const s=await getDocs(q);
+    expenses=s.docs.map(d=>({id:d.id,...d.data()}));
+  }catch(e){expenses=[]}
+}
+
+window.switchTab=(tab)=>{
+  currentTab=tab;currentFunctionId=null;
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',['dashboard','moi','expense','analytics','export'][i]===tab));
+  renderTab(tab);
+};
+
+function renderTab(tab){
+  const c=document.getElementById('mainContent');
+  if(tab==='dashboard')renderDashboard(c);
+  else if(tab==='moi')renderMoiList(c);
+  else if(tab==='expense')renderExpenseTab(c);
+  else if(tab==='analytics')renderAnalytics(c);
+  else if(tab==='export')renderExport(c);
+}
+
+function fmt(n){return Number(n||0).toLocaleString('en-IN')}
+
+// DASHBOARD
+function renderDashboard(c){
+  const totalMoi=functions.reduce((s,f)=>s+(f.totalAmount||0),0);
+  const thisMonth=new Date().toISOString().slice(0,7);
+  const monthExp=expenses.filter(e=>e.date&&e.date.startsWith(thisMonth)).reduce((s,e)=>s+(e.amount||0),0);
+  const totalExp=expenses.reduce((s,e)=>s+(e.amount||0),0);
+  c.innerHTML=`
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">மொத்த மொய்</div><div class="stat-value">₹${fmt(totalMoi)}</div><div class="stat-sub">${functions.length} Functions</div></div>
+      <div class="stat-card"><div class="stat-label">இம்மாத செலவு</div><div class="stat-value" style="color:var(--danger)">₹${fmt(monthExp)}</div><div class="stat-sub">இந்த மாதம்</div></div>
+      <div class="stat-card"><div class="stat-label">மொத்த செலவு</div><div class="stat-value" style="color:var(--secondary)">₹${fmt(totalExp)}</div><div class="stat-sub">${expenses.length} entries</div></div>
+      <div class="stat-card"><div class="stat-label">Functions</div><div class="stat-value" style="color:var(--success)">${functions.length}</div><div class="stat-sub">மொத்தம்</div></div>
+    </div>
+    <div class="section-header"><div class="section-title">💍 Functions</div><button class="btn btn-primary btn-sm" onclick="switchTab('moi')">எல்லாம் காண்க</button></div>
+    ${functions.slice(0,3).map(f=>fnCard(f)).join('')}
+    ${functions.length===0?'<div class="empty-state"><div class="empty-icon">💍</div><p>Function add பண்ணுங்க</p></div>':''}
+    <div class="section-header" style="margin-top:16px"><div class="section-title">💰 சமீபத்திய செலவு</div><button class="btn btn-primary btn-sm" onclick="switchTab('expense')">எல்லாம் காண்க</button></div>
+    ${expenses.slice(0,5).map(e=>expItem(e)).join('')}
+    ${expenses.length===0?'<div class="empty-state"><div class="empty-icon">💰</div><p>செலவு add பண்ணுங்க</p></div>':''}
+  `;
+}
+
+// MOI LIST
+function renderMoiList(c){
+  c.innerHTML=`
+    <div class="btn-group" style="margin-bottom:16px">
+      <button class="btn btn-primary" onclick="openModal('addFunctionModal')">➕ புது Function</button>
+      <button class="btn btn-outline" onclick="openModal('ocrModal')">📸 OCR Scan</button>
+    </div>
+    ${functions.length===0?'<div class="empty-state"><div class="empty-icon">💍</div><p>Function add பண்ணுங்க</p></div>':functions.map(f=>fnCard(f)).join('')}
+  `;
+}
+
+function fnCard(f){
+  const emoji={திருமணம்:'💒',பிறந்தநாள்:'🎂',வளைகாப்பு:'🔮',தொட்டில்:'🛏️',கிரஹப்பிரவேசம்:'🏠',வேறு:'📌'}[f.type]||'📌';
+  return`<div class="function-card" onclick="openFunction('${f.id}')">
+    <div class="fn-type">${emoji} ${f.type}</div>
+    <div class="fn-name">${f.name}</div>
+    <div class="fn-meta">📅 ${f.date||''} &nbsp;📍 ${f.place||'—'}</div>
+    <div class="fn-amount">₹${fmt(f.totalAmount||0)}</div>
+    <div class="fn-count">${f.entryCount||0} பேர் மொய் குடுத்தாங்க</div>
+  </div>`;
+}
+
+window.openFunction=async(id)=>{
+  currentFunctionId=id;
+  await loadMoiEntries(id);
+  const fn=functions.find(f=>f.id===id);
+  renderFunctionDetail(fn);
+};
+
+function renderFunctionDetail(fn){
+  const c=document.getElementById('mainContent');
+  const cashTotal=moiEntries.filter(e=>e.amtType==='cash').reduce((s,e)=>s+(e.amount||0),0);
+  const goldTotal=moiEntries.filter(e=>e.amtType==='gold').reduce((s,e)=>s+(e.gold||0),0);
+  c.innerHTML=`
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <button class="btn btn-outline btn-sm" onclick="switchTab('moi')">← Back</button>
+      <div style="flex:1"><div style="font-family:var(--font-tamil);font-weight:700;font-size:18px">${fn.name}</div><div style="font-size:12px;color:var(--text-muted)">${fn.type} • ${fn.date||''}</div></div>
+      <button class="btn btn-sm" style="background:#EF4444;color:white" onclick="startLiveMode('${fn.id}','${fn.name}')">📺 Live</button>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Cash மொய்</div><div class="stat-value">₹${fmt(cashTotal)}</div></div>
+      <div class="stat-card"><div class="stat-label">Gold மொய்</div><div class="stat-value" style="color:var(--secondary)">${goldTotal} Sov</div></div>
+      <div class="stat-card"><div class="stat-label">மொத்த பேர்</div><div class="stat-value" style="color:var(--success)">${moiEntries.length}</div></div>
+      <div class="stat-card"><div class="stat-label">சராசரி</div><div class="stat-value" style="color:var(--primary)">₹${moiEntries.filter(e=>e.amtType==='cash').length?fmt(Math.round(cashTotal/moiEntries.filter(e=>e.amtType==='cash').length)):0}</div></div>
+    </div>
+    <div class="section-header"><div class="section-title">மொய் பட்டியல்</div><button class="btn btn-primary btn-sm" onclick="openModal('addMoiModal')">➕ Add</button></div>
+    <div class="search-bar"><span class="search-icon">🔍</span><input placeholder="பெயர் / ஊர் தேடுங்க..." oninput="filterMoi(this.value)"></div>
+    <div id="moiEntriesList">${moiEntries.length===0?'<div class="empty-state"><div class="empty-icon">💍</div><p>Entry add பண்ணுங்க</p></div>':moiEntries.map(moiItem).join('')}</div>
+  `;
+}
+
+function moiItem(e){
+  const amtD=e.amtType==='gold'?`${e.gold} Sov 🥇`:`₹${fmt(e.amount)}`;
+  return`<div class="list-item">
+    <div class="item-avatar">${(e.name||'?')[0]}</div>
+    <div class="item-body">
+      <div class="item-name">${e.name||''} ${e.identity?`<small style="color:var(--text-muted)">(${e.identity})</small>`:''}</div>
+      <div class="item-sub">${e.village?'📍'+e.village:''} ${e.relation?'• <span class="relation-tag">'+e.relation+'</span>':''}</div>
+      <div class="item-sub">${e.date||''}</div>
+    </div>
+    <div style="text-align:right">
+      <div class="item-amount">${amtD}</div>
+      <button class="btn btn-sm btn-danger" style="margin-top:6px" onclick="deleteMoiEntry('${e.id}')">🗑️</button>
+    </div>
+  </div>`;
+}
+
+window.filterMoi=(v)=>{
+  const f=moiEntries.filter(e=>e.name?.toLowerCase().includes(v.toLowerCase())||e.village?.toLowerCase().includes(v.toLowerCase()));
+  document.getElementById('moiEntriesList').innerHTML=f.length?f.map(moiItem).join(''):'<div class="empty-state"><div class="empty-icon">🔍</div><p>கிடைக்கவில்லை</p></div>';
+};
+
+// EXPENSE TAB
+function renderExpenseTab(c){
+  const grouped={};
+  expenses.forEach(e=>{const m=(e.date||'').slice(0,7);if(!grouped[m])grouped[m]=[];grouped[m].push(e)});
+  c.innerHTML=`
+    <button class="btn btn-primary btn-full" style="margin-bottom:16px" onclick="openModal('addExpenseModal')">➕ செலவு Add</button>
+    ${Object.entries(grouped).sort((a,b)=>b[0].localeCompare(a[0])).map(([month,exps])=>{
+      const total=exps.reduce((s,e)=>s+(e.amount||0),0);
+      const d=new Date(month+'-01');
+      const label=d.toLocaleDateString('ta-IN',{year:'numeric',month:'long'});
+      return`<div class="section-header" style="margin-top:16px"><div class="section-title">📅 ${label}</div><span class="badge badge-red">₹${fmt(total)}</span></div>${exps.map(expItem).join('')}`;
+    }).join('')}
+    ${expenses.length===0?'<div class="empty-state"><div class="empty-icon">💰</div><p>செலவு add பண்ணுங்க</p></div>':''}
+  `;
+}
+
+function expItem(e){
+  const catEmoji={உணவு:'🍛',காய்கறி:'🥦',பயணம்:'🚗',மருத்துவம்:'💊',ஷாப்பிங்:'🛍️',மின்சாரம்:'💡',வேறு:'📌'}[e.category]||'📌';
+  return`<div class="list-item">
+    <div class="item-avatar">${catEmoji}</div>
+    <div class="item-body">
+      <div class="item-name">${e.description||''}</div>
+      <div class="item-sub">${e.category||''} • ${e.date||''}</div>
+    </div>
+    <div style="text-align:right">
+      <div class="item-amount" style="color:var(--danger)">₹${fmt(e.amount)}</div>
+      <button class="btn btn-sm btn-danger" style="margin-top:6px" onclick="deleteExpense('${e.id}')">🗑️</button>
+    </div>
+  </div>`;
+}
+
+// ANALYTICS
+function renderAnalytics(c){
+  const catMap={};
+  expenses.forEach(e=>{catMap[e.category||'வேறு']=(catMap[e.category||'வேறு']||0)+e.amount});
+  const totalExp=Object.values(catMap).reduce((a,b)=>a+b,0);
+  const colors=['#7C3AED','#F59E0B','#10B981','#EF4444','#0EA5E9','#EC4899','#84CC16'];
+  c.innerHTML=`
+    <div class="card">
+      <div class="card-title">💰 செலவு பிரிப்பு</div>
+      ${Object.keys(catMap).length>0?`<canvas id="expChart" height="200"></canvas>`:''}
+      <div style="margin-top:16px">
+        ${Object.entries(catMap).map(([cat,amt],i)=>`
+          <div class="heatmap-item">
+            <div class="heatmap-label">${cat}</div>
+            <div class="heatmap-bar"><div class="heatmap-fill" style="width:${totalExp?Math.round(amt/totalExp*100):0}%;background:${colors[i%colors.length]}">${totalExp?Math.round(amt/totalExp*100)+'%':''}</div></div>
+            <div class="heatmap-val">₹${fmt(amt)}</div>
+          </div>`).join('')}
+        ${Object.keys(catMap).length===0?'<div class="empty-state"><div class="empty-icon">📊</div><p>இன்னும் data இல்ல</p></div>':''}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">🗺️ Village / Area மொய்</div>
+      <div id="villageHeatmap"><div style="text-align:center;padding:16px;color:var(--text-muted)">Loading...</div></div>
+    </div>
+  `;
+  if(Object.keys(catMap).length>0){
+    setTimeout(()=>{
+      const ctx=document.getElementById('expChart');
+      if(ctx)new Chart(ctx,{type:'doughnut',data:{labels:Object.keys(catMap),datasets:[{data:Object.values(catMap),backgroundColor:colors,borderWidth:0}]},options:{plugins:{legend:{position:'bottom'}},cutout:'65%'}});
+    },100);
+  }
+  // Load village data
+  loadVillageData();
+}
+
+async function loadVillageData(){
+  const villageMap={};
+  for(const fn of functions){
+    const q=query(collection(db,'moiEntries'),where('functionId','==',fn.id));
+    const snap=await getDocs(q);
+    snap.docs.forEach(d=>{const e=d.data();if(e.village)villageMap[e.village]=(villageMap[e.village]||0)+(e.amtType==='cash'?e.amount:0)});
+  }
+  const el=document.getElementById('villageHeatmap');
+  if(!el)return;
+  const sorted=Object.entries(villageMap).sort((a,b)=>b[1]-a[1]);
+  const max=sorted[0]?.[1]||1;
+  el.innerHTML=sorted.length?sorted.map(([v,amt])=>`
+    <div class="heatmap-item">
+      <div class="heatmap-label">📍${v}</div>
+      <div class="heatmap-bar"><div class="heatmap-fill" style="width:${Math.round(amt/max*100)}%;background:var(--primary)">${Math.round(amt/max*100)}%</div></div>
+      <div class="heatmap-val">₹${fmt(amt)}</div>
+    </div>`).join(''):'<div class="empty-state"><div class="empty-icon">🗺️</div><p>Village data இல்ல</p></div>';
+}
+
+// EXPORT
+function renderExport(c){
+  c.innerHTML=`
+    <div class="card">
+      <div class="card-title">💍 மொய் Export</div>
+      <div class="form-group"><label class="form-label">Function தேர்வு</label>
+        <select class="form-select" id="exportFnSelect">
+          <option value="all">எல்லா Functions</option>
+          ${functions.map(f=>`<option value="${f.id}">${f.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="export-menu">
+        <button class="btn btn-success" onclick="exportMoiExcel()">📊 Excel Export</button>
+        <button class="btn btn-danger" onclick="exportMoiPDF()">📄 PDF Export</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">💰 செலவு Export</div>
+      <div class="form-group"><label class="form-label">மாதம் தேர்வு</label>
+        <select class="form-select" id="exportMonthSelect">
+          <option value="all">எல்லா மாதங்கள்</option>
+          ${[...new Set(expenses.map(e=>(e.date||'').slice(0,7)))].sort().reverse().map(m=>`<option value="${m}">${m}</option>`).join('')}
+        </select>
+      </div>
+      <div class="export-menu">
+        <button class="btn btn-success" onclick="exportExpenseExcel()">📊 Excel Export</button>
+        <button class="btn btn-danger" onclick="exportExpensePDF()">📄 PDF Export</button>
+      </div>
+    </div>
+  `;
+}
+
+// SAVE
+window.saveFunction=async()=>{
+  const name=document.getElementById('fnName').value.trim();
+  const type=document.getElementById('fnType').value;
+  const date=document.getElementById('fnDate').value;
+  const place=document.getElementById('fnPlace').value.trim();
+  if(!name||!date){showToast('பெயரும் தேதியும் அவசியம்!');return}
+  try{
+    await addDoc(collection(db,'functions'),{name,type,date,place,totalAmount:0,entryCount:0,uid:currentUser.uid,createdAt:new Date().toISOString()});
+    showToast('✅ Function save ஆச்சு!');closeModal('addFunctionModal');
+    ['fnName','fnDate','fnPlace'].forEach(id=>document.getElementById(id).value='');
+    await loadFunctions();renderMoiList(document.getElementById('mainContent'));
+  }catch(e){showToast('பிழை: '+e.message)}
+};
+
+window.saveMoiEntry=async()=>{
+  if(!currentFunctionId){showToast('Function open பண்ணுங்க!');return}
+  const name=document.getElementById('moiName').value.trim();
+  const village=document.getElementById('moiVillage').value.trim();
+  const relation=document.getElementById('moiRelation').value;
+  const identity=document.getElementById('moiIdentity').value.trim();
+  const amtType=document.getElementById('moiAmtType').value;
+  const amount=parseFloat(document.getElementById('moiAmount').value)||0;
+  const gold=parseFloat(document.getElementById('moiGold').value)||0;
+  const date=document.getElementById('moiDate').value;
+  if(!name){showToast('பெயர் அவசியம்!');return}
+  try{
+    await addDoc(collection(db,'moiEntries'),{functionId:currentFunctionId,name,village,relation,identity,amtType,amount,gold,date,uid:currentUser.uid,createdAt:new Date().toISOString()});
+    const fn=functions.find(f=>f.id===currentFunctionId);
+    if(fn)await updateDoc(doc(db,'functions',currentFunctionId),{totalAmount:(fn.totalAmount||0)+(amtType==='cash'?amount:0),entryCount:(fn.entryCount||0)+1});
+    showToast('✅ மொய் save ஆச்சு!');closeModal('addMoiModal');
+    ['moiName','moiVillage','moiIdentity','moiAmount','moiGold','moiDate'].forEach(id=>document.getElementById(id).value='');
+    await loadMoiEntries(currentFunctionId);await loadFunctions();
+    const fnD=functions.find(f=>f.id===currentFunctionId);if(fnD)renderFunctionDetail(fnD);
+  }catch(e){showToast('பிழை: '+e.message)}
+};
+
+window.saveExpense=async()=>{
+  const desc=document.getElementById('expDesc').value.trim();
+  const amount=parseFloat(document.getElementById('expAmount').value)||0;
+  const date=document.getElementById('expDate').value;
+  if(!desc||!amount||!date){showToast('எல்லாம் fill பண்ணுங்க!');return}
+  try{
+    await addDoc(collection(db,'expenses'),{description:desc,amount,date,category:selectedCategory,uid:currentUser.uid,createdAt:new Date().toISOString()});
+    showToast('✅ செலவு save ஆச்சு!');closeModal('addExpenseModal');
+    ['expDesc','expAmount','expDate'].forEach(id=>document.getElementById(id).value='');
+    await loadExpenses();
+    if(currentTab==='expense')renderExpenseTab(document.getElementById('mainContent'));
+    else renderDashboard(document.getElementById('mainContent'));
+  }catch(e){showToast('பிழை: '+e.message)}
+};
+
+// DELETE
+window.deleteMoiEntry=async(id)=>{
+  if(!confirm('Delete பண்ணணுமா?'))return;
+  const entry=moiEntries.find(e=>e.id===id);
+  await deleteDoc(doc(db,'moiEntries',id));
+  if(entry&&currentFunctionId){
+    const fn=functions.find(f=>f.id===currentFunctionId);
+    if(fn)await updateDoc(doc(db,'functions',currentFunctionId),{totalAmount:Math.max(0,(fn.totalAmount||0)-(entry.amtType==='cash'?entry.amount:0)),entryCount:Math.max(0,(fn.entryCount||0)-1)});
+  }
+  showToast('🗑️ Delete ஆச்சு');
+  await loadMoiEntries(currentFunctionId);await loadFunctions();
+  const fn=functions.find(f=>f.id===currentFunctionId);if(fn)renderFunctionDetail(fn);
+};
+
+window.deleteExpense=async(id)=>{
+  if(!confirm('Delete பண்ணணுமா?'))return;
+  await deleteDoc(doc(db,'expenses',id));
+  showToast('🗑️ Delete ஆச்சு');
+  await loadExpenses();renderExpenseTab(document.getElementById('mainContent'));
+};
+
+// VOICE
+window.startVoice=(type)=>{
+  if(!('webkitSpeechRecognition'in window)&&!('SpeechRecognition'in window)){showToast('Chrome browser use பண்ணுங்க');return}
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  const r=new SR();r.continuous=false;r.interimResults=false;r.lang='ta-IN';
+  const btn=document.getElementById(type==='moi'?'moiVoiceBtn':'expVoiceBtn');
+  const res=document.getElementById(type==='moi'?'moiVoiceResult':'expVoiceResult');
+  r.start();btn.classList.add('recording');btn.textContent='⏹️';
+  r.onresult=(e)=>{
+    const t=e.results[0][0].transcript;
+    res.style.display='block';res.textContent='🎤 '+t;
+    if(type==='moi')parseMoiVoice(t);else parseExpVoice(t);
+  };
+  r.onerror=()=>{showToast('Voice error. மீண்டும் try பண்ணுங்க');btn.classList.remove('recording');btn.textContent='🎤'};
+  r.onend=()=>{btn.classList.remove('recording');btn.textContent='🎤'};
+};
+
+function parseMoiVoice(text){
+  const amtM=text.match(/(\d+)/);if(amtM)document.getElementById('moiAmount').value=amtM[1];
+  const words=text.split(' ');if(words[0])document.getElementById('moiName').value=words[0];
+  const vilM=text.match(/(\S+)\s+இருந்து/);if(vilM)document.getElementById('moiVillage').value=vilM[1];
+  showToast('✅ Auto-fill ஆச்சு! Check பண்ணி Save பண்ணுங்க');
+}
+
+function parseExpVoice(text){
+  const amtM=text.match(/(\d+)/);if(amtM)document.getElementById('expAmount').value=amtM[1];
+  const today=new Date();let date=today.toISOString().slice(0,10);
+  if(text.includes('நேத்து')||text.includes('yesterday')){const y=new Date(today);y.setDate(y.getDate()-1);date=y.toISOString().slice(0,10)}
+  document.getElementById('expDate').value=date;
+  const catMap={'பால்':'காய்கறி','காய்கறி':'காய்கறி','சாப்பாடு':'உணவு','ஹோட்டல்':'உணவு','டீ':'உணவு','காபி':'உணவு','பஸ்':'பயணம்','ஆட்டோ':'பயணம்','பெட்ரோல்':'பயணம்','மருந்து':'மருத்துவம்','டாக்டர்':'மருத்துவம்','மின்சாரம்':'மின்சாரம்'};
+  let cat='வேறு';for(const[k,v]of Object.entries(catMap)){if(text.includes(k)){cat=v;break}}
+  selectedCategory=cat;
+  document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('active',c.textContent.includes(cat)));
+  let desc=text.replace(/\d+/g,'').replace(/ரூபாய்|ரூ|வாங்கினேன்|நேத்து|இன்று|செலவு/g,'').trim();
+  if(desc)document.getElementById('expDesc').value=desc;
+  showToast('✅ Auto-fill ஆச்சு!');
+}
+
+// LIVE MODE
+window.startLiveMode=(fnId,fnName)=>{
+  document.getElementById('liveFnName').textContent=fnName;
+  document.getElementById('liveModeScreen').style.display='flex';
+  if(liveUnsub)liveUnsub();
+  const q=query(collection(db,'moiEntries'),where('functionId','==',fnId));
+  liveUnsub=onSnapshot(q,snap=>{
+    let total=0,count=0;
+    snap.docs.forEach(d=>{const e=d.data();if(e.amtType==='cash')total+=e.amount||0;count++});
+    document.getElementById('liveAmount').textContent='₹'+fmt(total);
+    document.getElementById('liveCount').textContent=count;
+  });
+};
+window.closeLiveMode=()=>{document.getElementById('liveModeScreen').style.display='none';if(liveUnsub){liveUnsub();liveUnsub=null}};
+
+// OCR
+window.processOCR=async(input)=>{
+  const file=input.files[0];if(!file)return;
+  const preview=document.getElementById('ocrPreview');
+  document.getElementById('ocrImage').src=URL.createObjectURL(file);
+  preview.style.display='block';
+  document.getElementById('ocrLoader').style.display='block';
+  const s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js';
+  s.onload=async()=>{
+    try{
+      const{data:{text}}=await Tesseract.recognize(file,'tam+eng');
+      document.getElementById('ocrLoader').style.display='none';
+      document.getElementById('ocrResults').innerHTML=`<div style="margin-top:12px"><div style="font-family:var(--font-tamil);font-size:13px;white-space:pre-wrap;background:var(--bg);padding:12px;border-radius:8px">${text}</div><div style="margin-top:8px;font-size:12px;color:var(--text-muted);font-family:var(--font-tamil)">இந்த text-ஐ பார்த்து entry போடுங்க</div></div>`;
+    }catch(e){document.getElementById('ocrLoader').style.display='none';showToast('OCR பிழை')}
+  };
+  document.head.appendChild(s);
+};
+
+// EXPORT
+window.exportMoiExcel=async()=>{
+  const fnId=document.getElementById('exportFnSelect')?.value;
+  let rows=[];
+  const fns=fnId==='all'?functions:functions.filter(f=>f.id===fnId);
+  for(const fn of fns){
+    const q=query(collection(db,'moiEntries'),where('functionId','==',fn.id));
+    const snap=await getDocs(q);
+    snap.docs.forEach(d=>{const e=d.data();rows.push({'Function':fn.name,'பெயர்':e.name||'','ஊர்':e.village||'','உறவு':e.relation||'','Identity':e.identity||'','வகை':e.amtType==='gold'?'Gold':'Cash','தொகை':e.amtType==='cash'?e.amount:0,'Gold(Sov)':e.amtType==='gold'?e.gold:0,'தேதி':e.date||''})});
+  }
+  const ws=XLSX.utils.json_to_sheet(rows);
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'மொய்');
+  XLSX.writeFile(wb,'moi_tracker.xlsx');showToast('✅ Excel Download!');
+};
+
+window.exportMoiPDF=async()=>{
+  const{jsPDF}=window.jspdf;const pdf=new jsPDF();
+  pdf.text('Moi Tracker Report',14,16);
+  const fnId=document.getElementById('exportFnSelect')?.value;
+  let rows=[];
+  const fns=fnId==='all'?functions:functions.filter(f=>f.id===fnId);
+  for(const fn of fns){
+    const q=query(collection(db,'moiEntries'),where('functionId','==',fn.id));
+    const snap=await getDocs(q);
+    snap.docs.forEach(d=>{const e=d.data();rows.push([fn.name,e.name||'',e.village||'',e.relation||'',e.amtType==='cash'?`Rs.${e.amount}`:`${e.gold}Sov`,e.date||''])});
+  }
+  pdf.autoTable({head:[['Function','Name','Village','Relation','Amount','Date']],body:rows,startY:24,styles:{fontSize:9}});
+  pdf.save('moi_tracker.pdf');showToast('✅ PDF Download!');
+};
+
+window.exportExpenseExcel=()=>{
+  const month=document.getElementById('exportMonthSelect')?.value;
+  const filtered=month==='all'?expenses:expenses.filter(e=>(e.date||'').startsWith(month));
+  const ws=XLSX.utils.json_to_sheet(filtered.map(e=>({'விவரம்':e.description||'','தொகை':e.amount||0,'Category':e.category||'','தேதி':e.date||''})));
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'செலவு');
+  XLSX.writeFile(wb,'expense_tracker.xlsx');showToast('✅ Excel Download!');
+};
+
+window.exportExpensePDF=()=>{
+  const{jsPDF}=window.jspdf;const pdf=new jsPDF();
+  pdf.text('Expense Tracker Report',14,16);
+  const month=document.getElementById('exportMonthSelect')?.value;
+  const filtered=month==='all'?expenses:expenses.filter(e=>(e.date||'').startsWith(month));
+  const total=filtered.reduce((s,e)=>s+e.amount,0);
+  pdf.autoTable({head:[['விவரம்','தொகை','Category','தேதி']],body:filtered.map(e=>[e.description,`Rs.${e.amount}`,e.category||'',e.date||'']),startY:24,styles:{fontSize:9},foot:[['மொத்தம்',`Rs.${total}`,'','']]});
+  pdf.save('expense_tracker.pdf');showToast('✅ PDF Download!');
+};
+
+// HELPERS
+window.openModal=(id)=>{
+  document.getElementById(id).classList.add('open');
+  const today=new Date().toISOString().slice(0,10);
+  ['fnDate','moiDate','expDate'].forEach(fid=>{const el=document.getElementById(fid);if(el&&!el.value)el.value=today});
+};
+window.closeModal=(id)=>document.getElementById(id).classList.remove('open');
+window.selectCategory=(el,cat)=>{selectedCategory=cat;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));el.classList.add('active')};
+window.toggleTheme=()=>{darkMode=!darkMode;document.documentElement.setAttribute('data-theme',darkMode?'dark':'light');document.querySelector('[onclick="toggleTheme()"]').textContent=darkMode?'☀️':'🌙'};
+
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open')}));
+
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000)}
+</script>
+</body>
+</html>
