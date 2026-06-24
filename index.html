@@ -604,44 +604,60 @@ window.saveFunction=async()=>{
   }catch(e){showToast('பிழை: '+e.message)}
 };
 
-window.saveMoiEntry=async()=>{
-  if(!currentFunctionId){showToast('Function open பண்ணுங்க!');return}
-  const name=document.getElementById('moiName').value.trim();
-  const village=document.getElementById('moiVillage').value.trim();
-  const relation=document.getElementById('moiRelation').value;
-  const identity=document.getElementById('moiIdentity').value.trim();
-  const amtType=document.getElementById('moiAmtType').value;
-  const amount=parseFloat(document.getElementById('moiAmount').value)||0;
-  const gold=parseFloat(document.getElementById('moiGold').value)||0;
-  const date=document.getElementById('moiDate').value;
-  if(!name){showToast('பெயர் அவசியம்!');return}
-  try{
-    await addDoc(collection(db,'moiEntries'),{functionId:currentFunctionId,name,village,relation,identity,amtType,amount,gold,date,uid:currentUser.uid,createdAt:new Date().toISOString()});
-    const fn=functions.find(f=>f.id===currentFunctionId);
-    if(fn)await updateDoc(doc(db,'functions',currentFunctionId),{totalAmount:(fn.totalAmount||0)+(amtType==='cash'?amount:0),entryCount:(fn.entryCount||0)+1});
-    showToast('✅ மொய் save ஆச்சு!');closeModal('addMoiModal');
-    ['moiName','moiVillage','moiIdentity','moiAmount','moiGold','moiDate'].forEach(id=>document.getElementById(id).value='');
-    await loadMoiEntries(currentFunctionId);await loadFunctions();
-    const fnD=functions.find(f=>f.id===currentFunctionId);if(fnD)renderFunctionDetail(fnD);
-  }catch(e){showToast('பிழை: '+e.message)}
+window.saveMoiEntry = async () => {
+  if (!currentFunctionId) { showToast('Function open பண்ணுங்க!'); return }
+  const name = document.getElementById('moiName').value.trim();
+  const village = document.getElementById('moiVillage').value.trim();
+  const relation = document.getElementById('moiRelation').value;
+  const identity = document.getElementById('moiIdentity').value.trim();
+  const amtType = document.getElementById('moiAmtType').value;
+  const amount = parseFloat(document.getElementById('moiAmount').value) || 0;
+  const gold = parseFloat(document.getElementById('moiGold').value) || 0;
+  const date = document.getElementById('moiDate').value;
+  if (!name) { showToast('பெயர் அவசியம்!'); return }
+  try {
+    await addDoc(collection(db, 'moiEntries'), { functionId: currentFunctionId, name, village, relation, identity, amtType, amount, gold, date, uid: currentUser.uid, createdAt: new Date().toISOString() });
+    const fn = functions.find(f => f.id === currentFunctionId);
+    if (fn) await updateDoc(doc(db, 'functions', currentFunctionId), { totalAmount: (fn.totalAmount || 0) + (amtType === 'cash' ? amount : 0), entryCount: (fn.entryCount || 0) + 1 });
+
+    // 📊 Google Sheet Real-time Sync
+    fetch("https://script.google.com/macros/s/AKfycbzL4hXLSwOsM20asrm4gG9ZSmQQJi_uh9WvCEL2zcTjb2oTYINbPSGkEINy_uWhE8Q88A/exec", {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "Moi", name: name, amount: amtType === 'cash' ? amount : gold + ' Sov', functionName: fn ? fn.name : '' })
+    });
+
+    showToast('✅ மொய் save ஆச்சு!'); closeModal('addMoiModal');
+    ['moiName', 'moiVillage', 'moiIdentity', 'moiAmount', 'moiGold', 'moiDate'].forEach(id => document.getElementById(id).value = '');
+    await loadMoiEntries(currentFunctionId); await loadFunctions();
+    const fnD = functions.find(f => f.id === currentFunctionId); if (fnD) renderFunctionDetail(fnD);
+  } catch (e) { showToast('பிழை: ' + e.message) }
 };
 
-window.saveExpense=async()=>{
-  const desc=document.getElementById('expDesc').value.trim();
-  const amount=parseFloat(document.getElementById('expAmount').value)||0;
-  const date=document.getElementById('expDate').value;
-  if(!desc||!amount||!date){showToast('எல்லாம் fill பண்ணுங்க!');return}
-  try{
-    await addDoc(collection(db,'expenses'),{description:desc,amount,date,category:selectedCategory,uid:currentUser.uid,createdAt:new Date().toISOString()});
-    showToast('✅ செலவு save ஆச்சு!');closeModal('addExpenseModal');
-    ['expDesc','expAmount','expDate'].forEach(id=>document.getElementById(id).value='');
+window.saveExpense = async () => {
+  const desc = document.getElementById('expDesc').value.trim();
+  const amount = parseFloat(document.getElementById('expAmount').value) || 0;
+  const date = document.getElementById('expDate').value;
+  if (!desc || !amount || !date) { showToast('எல்லாம் fill பண்ணுங்க!'); return }
+  try {
+    await addDoc(collection(db, 'expenses'), { description: desc, amount, date, category: selectedCategory, uid: currentUser.uid, createdAt: new Date().toISOString() });
+
+    // 📊 Google Sheet Real-time Sync
+    fetch("https://script.google.com/macros/s/AKfycbzL4hXLSwOsM20asrm4gG9ZSmQQJi_uh9WvCEL2zcTjb2oTYINbPSGkEINy_uWhE8Q88A/exec", {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "Expense", name: desc, amount: amount, category: selectedCategory })
+    });
+
+    showToast('✅ செலவு save ஆச்சு!'); closeModal('addExpenseModal');
+    ['expDesc', 'expAmount', 'expDate'].forEach(id => document.getElementById(id).value = '');
     await loadExpenses();
-    if(currentTab==='expense')renderExpenseTab(document.getElementById('mainContent'));
+    if (currentTab === 'expense') renderExpenseTab(document.getElementById('mainContent'));
     else renderDashboard(document.getElementById('mainContent'));
-  }catch(e){showToast('பிழை: '+e.message)}
+  } catch (e) { showToast('பிழை: ' + e.message) }
 };
-
-// DELETE
 window.deleteMoiEntry=async(id)=>{
   if(!confirm('Delete பண்ணணுமா?'))return;
   const entry=moiEntries.find(e=>e.id===id);
